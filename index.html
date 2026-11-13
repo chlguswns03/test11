@@ -1,0 +1,984 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>로컬 보안 엑셀 통계 분석 대시보드</title>
+  <!-- 로컬 브라우저 메모리 연산을 위한 오픈소스 라이브러리 (SheetJS, Chart.js) -->
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+  <style>
+    :root {
+      --primary: #2563eb;
+      --primary-hover: #1d4ed8;
+      --bg-page: #f8fafc;
+      --card-bg: #ffffff;
+      --border-color: #e2e8f0;
+      --text-main: #0f172a;
+      --text-muted: #64748b;
+      --success: #10b981;
+      --hanbit: #3b82f6;
+      --mirae: #10b981;
+      --saebom: #ec4899;
+      --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+      --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -2px rgba(0, 0, 0, 0.1);
+      --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -4px rgba(0, 0, 0, 0.1);
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Pretendard", sans-serif;
+      background-color: var(--bg-page);
+      color: var(--text-main);
+      line-height: 1.6;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* Top Nav */
+    header {
+      background: #ffffff;
+      border-bottom: 1px solid var(--border-color);
+      padding: 1rem 2rem;
+      box-shadow: var(--shadow-sm);
+    }
+    .header-content {
+      max-width: 1300px;
+      margin: 0 auto;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 1rem;
+    }
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+    }
+    .brand-icon {
+      background: var(--primary);
+      color: white;
+      width: 38px;
+      height: 38px;
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.2rem;
+      font-weight: bold;
+    }
+    .brand-text h1 {
+      font-size: 1.15rem;
+      font-weight: 700;
+      color: var(--text-main);
+    }
+    .brand-text p {
+      font-size: 0.8rem;
+      color: var(--text-muted);
+    }
+
+    .security-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0.4rem 0.85rem;
+      background-color: #ecfdf5;
+      color: #065f46;
+      border: 1px solid #a7f3d0;
+      border-radius: 9999px;
+      font-size: 0.82rem;
+      font-weight: 600;
+    }
+    .security-badge span.dot {
+      width: 8px;
+      height: 8px;
+      background-color: #10b981;
+      border-radius: 50%;
+      animation: pulse 2s infinite;
+    }
+    @keyframes pulse {
+      0% { opacity: 1; transform: scale(1); }
+      50% { opacity: 0.4; transform: scale(0.9); }
+      100% { opacity: 1; transform: scale(1); }
+    }
+
+    /* Container */
+    main {
+      flex: 1;
+      max-width: 1300px;
+      width: 100%;
+      margin: 2rem auto;
+      padding: 0 1.5rem;
+    }
+
+    /* Upload Screen */
+    #upload-section {
+      max-width: 760px;
+      margin: 2.5rem auto;
+      text-align: center;
+    }
+    .upload-card {
+      background: #ffffff;
+      border: 2px dashed #cbd5e1;
+      border-radius: 16px;
+      padding: 3.5rem 2rem;
+      cursor: pointer;
+      transition: all 0.25s ease;
+      box-shadow: var(--shadow-sm);
+    }
+    .upload-card:hover, .upload-card.drag-over {
+      border-color: var(--primary);
+      background: #eff6ff;
+      transform: translateY(-2px);
+      box-shadow: var(--shadow-md);
+    }
+    .upload-icon {
+      font-size: 3.2rem;
+      margin-bottom: 1rem;
+    }
+    .upload-card h2 {
+      font-size: 1.35rem;
+      font-weight: 700;
+      color: var(--text-main);
+      margin-bottom: 0.5rem;
+    }
+    .upload-card p {
+      color: var(--text-muted);
+      font-size: 0.95rem;
+      margin-bottom: 1.5rem;
+    }
+    .btn-select {
+      background: var(--primary);
+      color: white;
+      padding: 0.75rem 1.6rem;
+      font-size: 0.95rem;
+      font-weight: 600;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: background 0.2s;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+    .btn-select:hover {
+      background: var(--primary-hover);
+    }
+    .upload-footer-notice {
+      margin-top: 1.5rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.5rem;
+      font-size: 0.85rem;
+      color: var(--text-muted);
+    }
+
+    /* Dashboard Screen */
+    #dashboard-section {
+      display: none;
+    }
+    .dash-header-bar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 1.8rem;
+      flex-wrap: wrap;
+      gap: 1rem;
+      padding-bottom: 1rem;
+      border-bottom: 1px solid var(--border-color);
+    }
+    .file-meta-box h2 {
+      font-size: 1.4rem;
+      font-weight: 800;
+      color: var(--text-main);
+    }
+    .file-meta-box p {
+      font-size: 0.88rem;
+      color: var(--text-muted);
+      margin-top: 0.2rem;
+    }
+    .btn-reupload {
+      background: white;
+      border: 1px solid var(--border-color);
+      color: var(--text-main);
+      padding: 0.5rem 1rem;
+      border-radius: 8px;
+      font-size: 0.85rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .btn-reupload:hover {
+      background: #f1f5f9;
+      border-color: #cbd5e1;
+    }
+
+    /* KPI Summary Row */
+    .kpi-row {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+      gap: 1.2rem;
+      margin-bottom: 2rem;
+    }
+    .kpi-box {
+      background: white;
+      border-radius: 12px;
+      padding: 1.25rem;
+      border: 1px solid var(--border-color);
+      box-shadow: var(--shadow-sm);
+    }
+    .kpi-box .label {
+      font-size: 0.82rem;
+      font-weight: 600;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      margin-bottom: 0.4rem;
+    }
+    .kpi-box .value {
+      font-size: 1.75rem;
+      font-weight: 800;
+      color: var(--text-main);
+      letter-spacing: -0.5px;
+    }
+    .kpi-box .sub {
+      font-size: 0.82rem;
+      color: var(--text-muted);
+      margin-top: 0.35rem;
+    }
+
+    /* Method Cards */
+    .method-card {
+      background: white;
+      border-radius: 14px;
+      border: 1px solid var(--border-color);
+      box-shadow: var(--shadow-sm);
+      margin-bottom: 2rem;
+      overflow: hidden;
+    }
+    .method-card-header {
+      padding: 1.2rem 1.6rem;
+      background: #fafafa;
+      border-bottom: 1px solid var(--border-color);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 0.8rem;
+    }
+    .method-card-header h3 {
+      font-size: 1.15rem;
+      font-weight: 700;
+      color: var(--text-main);
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+    .method-badge {
+      background: #dbeafe;
+      color: #1e40af;
+      font-size: 0.78rem;
+      font-weight: 700;
+      padding: 0.3rem 0.65rem;
+      border-radius: 6px;
+    }
+
+    .method-body {
+      padding: 1.6rem;
+      display: grid;
+      grid-template-columns: 1.35fr 1fr;
+      gap: 1.8rem;
+    }
+    @media (max-width: 960px) {
+      .method-body { grid-template-columns: 1fr; }
+    }
+
+    .chart-container {
+      position: relative;
+      background: #ffffff;
+      border: 1px solid #f1f5f9;
+      border-radius: 10px;
+      padding: 1rem;
+      min-height: 280px;
+    }
+
+    .commentary-panel {
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
+    }
+    .stat-result-box {
+      background: #f8fafc;
+      border-left: 4px solid var(--primary);
+      padding: 1rem;
+      border-radius: 0 8px 8px 0;
+    }
+    .stat-result-box h4 {
+      font-size: 0.92rem;
+      color: var(--text-main);
+      margin-bottom: 0.5rem;
+    }
+    .commentary-desc {
+      font-size: 0.9rem;
+      color: #334155;
+      line-height: 1.7;
+    }
+    .commentary-desc p {
+      margin-bottom: 0.6rem;
+    }
+    .commentary-desc p:last-child {
+      margin-bottom: 0;
+    }
+    .insight-pill {
+      background: #f0fdf4;
+      border: 1px solid #bbf7d0;
+      color: #166534;
+      padding: 0.75rem 0.9rem;
+      border-radius: 8px;
+      font-size: 0.85rem;
+    }
+
+    /* Custom Tables */
+    .stat-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.85rem;
+      text-align: left;
+    }
+    .stat-table th {
+      background: #f1f5f9;
+      padding: 0.6rem 0.8rem;
+      font-weight: 700;
+      color: #475569;
+      border-bottom: 2px solid var(--border-color);
+    }
+    .stat-table td {
+      padding: 0.6rem 0.8rem;
+      border-bottom: 1px solid #f1f5f9;
+    }
+    .stat-table tr:hover td {
+      background: #f8fafc;
+    }
+
+    /* Footer */
+    footer {
+      background: white;
+      border-top: 1px solid var(--border-color);
+      padding: 1.5rem;
+      text-align: center;
+      color: var(--text-muted);
+      font-size: 0.85rem;
+      margin-top: auto;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Top Navigation Header -->
+  <header>
+    <div class="header-content">
+      <div class="brand">
+        <div class="brand-icon">📈</div>
+        <div class="brand-text">
+          <h1>인메모리 보안 엑셀 통계 분석 솔루션</h1>
+          <p>클라이언트 브라우저 단독 처리 · 제로 서버 전송 (100% 프라이빗)</p>
+        </div>
+      </div>
+      <div class="security-badge">
+        <span class="dot"></span>
+        🔒 클라이언트 로컬 메모리 연산 보호 활성화
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Content -->
+  <main>
+    
+    <!-- 1. 파일 업로드 뷰 -->
+    <section id="upload-section">
+      <div class="upload-card" id="drop-zone" onclick="document.getElementById('excel-file-input').click()">
+        <input type="file" id="excel-file-input" accept=".xlsx, .xls" style="display: none;" onchange="handleFileSelect(event)">
+        <div class="upload-icon">📑</div>
+        <h2>분석할 엑셀 파일을 여기에 끌어다 놓거나 클릭하세요</h2>
+        <p>기존 5개년 매출 데이터(`.xlsx`) 또는 규격에 맞는 엑셀 파일을 선택하세요.</p>
+        <button type="button" class="btn-select">
+          <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"></path></svg>
+          컴퓨터에서 파일 선택
+        </button>
+      </div>
+      <div class="upload-footer-notice">
+        <svg width="16" height="16" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 1.944A11.954 11.954 0 012.166 5C2.056 5.649 2 6.319 2 7c0 5.225 3.34 9.67 8 11.317C14.66 16.67 18 12.225 18 7c0-.682-.057-1.35-.166-2.001A11.954 11.954 0 0110 1.944zM11 14a1 1 0 11-2 0 1 1 0 012 0zm0-7a1 1 0 10-2 0v4a1 1 0 102 0V7z" clip-rule="evenodd"></path></svg>
+        <span>선택하신 파일은 서버로 전송되지 않으며, 사용자 PC 메모리(RAM) 내에서만 즉시 파싱 및 분석됩니다.</span>
+      </div>
+    </section>
+
+    <!-- 2. 분석 대시보드 뷰 -->
+    <section id="dashboard-section">
+      <!-- 파일 메타 및 재업로드 버튼 -->
+      <div class="dash-header-bar">
+        <div class="file-meta-box">
+          <h2 id="meta-filename">파일명 로딩 중...</h2>
+          <p id="meta-info">총 데이터 건수: 계산 중</p>
+        </div>
+        <button class="btn-reupload" onclick="resetToUpload()">🔄 다른 파일 분석하기</button>
+      </div>
+
+      <!-- 요약 KPI 카드 -->
+      <div class="kpi-row" id="kpi-container">
+        <!-- 동적으로 주입 -->
+      </div>
+
+      <!-- 핵심 기법 1: 중심 경향 및 기술통계량 -->
+      <div class="method-card">
+        <div class="method-card-header">
+          <h3>기법 1. 기술통계량 및 산포도 분석 (Descriptive Statistics)</h3>
+          <span class="method-badge">중심경향성 & 변동폭</span>
+        </div>
+        <div class="method-body">
+          <div class="chart-container">
+            <canvas id="chart-desc"></canvas>
+          </div>
+          <div class="commentary-panel">
+            <div class="stat-result-box">
+              <h4>📊 항목별 요약 통계량</h4>
+              <div id="desc-table-container"></div>
+            </div>
+            <div class="commentary-desc" id="desc-commentary">
+              <!-- JS 해석 주입 -->
+            </div>
+            <div class="insight-pill" id="desc-insight">
+              💡 <strong>통계 해석 요약</strong>: 계산 중...
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 핵심 기법 2: 피어슨 상관관계 분석 -->
+      <div class="method-card">
+        <div class="method-card-header">
+          <h3>기법 2. 피어슨 상관관계 분석 (Pearson Correlation Analysis)</h3>
+          <span class="method-badge">상호작용 & 연관성 검증</span>
+        </div>
+        <div class="method-body">
+          <div class="chart-container">
+            <canvas id="chart-corr"></canvas>
+          </div>
+          <div class="commentary-panel">
+            <div class="stat-result-box">
+              <h4>🔗 상관계수($r$) 매트릭스</h4>
+              <div id="corr-matrix-container"></div>
+            </div>
+            <div class="commentary-desc" id="corr-commentary">
+              <!-- JS 해석 주입 -->
+            </div>
+            <div class="insight-pill" id="corr-insight">
+              💡 <strong>상관관계 해석</strong>: 계산 중...
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 핵심 기법 3: 선형 추세 및 성장률 회귀분석 -->
+      <div class="method-card">
+        <div class="method-card-header">
+          <h3>기법 3. 선형회귀 추세 및 성장 기울기 분석 (Trend & Slope Analysis)</h3>
+          <span class="method-badge">시간($t$) 경과에 따른 변화율</span>
+        </div>
+        <div class="method-body">
+          <div class="chart-container">
+            <canvas id="chart-trend"></canvas>
+          </div>
+          <div class="commentary-panel">
+            <div class="stat-result-box">
+              <h4>📈 회귀 모델 적합도 ($R^2$ 및 월평균 증감량)</h4>
+              <div id="reg-table-container"></div>
+            </div>
+            <div class="commentary-desc" id="reg-commentary">
+              <!-- JS 해석 주입 -->
+            </div>
+            <div class="insight-pill" id="reg-insight">
+              💡 <strong>성장률 해석</strong>: 계산 중...
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </section>
+
+  </main>
+
+  <!-- Footer -->
+  <footer>
+    <p>Client-Side In-Memory Statistical Analytics Dashboard | Zero Server Upload</p>
+  </footer>
+
+  <!-- SCRIPT: IN-MEMORY PARSER & STATISTICAL ENGINE -->
+  <script>
+    // 드래그 앤 드롭 이벤트 등록
+    const dropZone = document.getElementById('drop-zone');
+    ['dragenter', 'dragover'].forEach(eventName => {
+      dropZone.addEventListener(eventName, e => {
+        e.preventDefault();
+        dropZone.classList.add('drag-over');
+      }, false);
+    });
+    ['dragleave', 'drop'].forEach(eventName => {
+      dropZone.addEventListener(eventName, e => {
+        e.preventDefault();
+        dropZone.classList.remove('drag-over');
+      }, false);
+    });
+    dropZone.addEventListener('drop', e => {
+      const dt = e.dataTransfer;
+      const files = dt.files;
+      if (files.length > 0) processFile(files[0]);
+    });
+
+    function handleFileSelect(e) {
+      const file = e.target.files[0];
+      if (file) processFile(file);
+    }
+
+    function resetToUpload() {
+      document.getElementById('upload-section').style.display = 'block';
+      document.getElementById('dashboard-section').style.display = 'none';
+      document.getElementById('excel-file-input').value = '';
+      destroyCharts();
+    }
+
+    // 파일 로컬 메모리 읽기 (FileReader & SheetJS)
+    function processFile(file) {
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        try {
+          const data = new Uint8Array(e.target.result);
+          // SheetJS로 브라우저 메모리 안에서 파싱
+          const workbook = XLSX.read(data, { type: 'array', cellDates: true });
+          
+          // 데이터가 있는 첫 번째 또는 '월간매출' 시트 탐색
+          let sheetName = workbook.SheetNames[0];
+          if (workbook.SheetNames.includes('월간매출')) {
+            sheetName = '월간매출';
+          }
+          
+          const worksheet = workbook.Sheets[sheetName];
+          const rawJson = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
+
+          if (!rawJson || rawJson.length < 2) {
+            alert('엑셀 시트에 유효한 데이터가 충분하지 않습니다.');
+            return;
+          }
+
+          runAnalysis(file.name, rawJson);
+        } catch (err) {
+          console.error(err);
+          alert('엑셀 파일을 읽는 도중 오류가 발생했습니다: ' + err.message);
+        }
+      };
+      reader.readAsArrayBuffer(file);
+    }
+
+    // 차트 인스턴스 저장소
+    let activeCharts = {};
+    function destroyCharts() {
+      Object.keys(activeCharts).forEach(key => {
+        if (activeCharts[key]) activeCharts[key].destroy();
+      });
+      activeCharts = {};
+    }
+
+    // 통계 연산 및 대시보드 렌더링
+    function runAnalysis(fileName, rows) {
+      // 1. 헤더 추출
+      const headers = rows[0].map(h => String(h || '').trim());
+      // 날짜/기준 열 (첫 번째 열)
+      const dateColName = headers[0] || '기준';
+      
+      // 숫자 데이터 컬럼 추출 (2번째 열부터)
+      const seriesNames = headers.slice(1).filter(h => h.length > 0);
+      
+      // 2. 행 데이터 정제
+      const dates = [];
+      const seriesData = {};
+      seriesNames.forEach(name => { seriesData[name] = []; });
+
+      for (let i = 1; i < rows.length; i++) {
+        const row = rows[i];
+        if (!row || row.length === 0) continue;
+        
+        // 날짜/라벨 파싱
+        let d = row[0];
+        if (d instanceof Date) {
+          d = d.toISOString().slice(0, 7);
+        } else if (typeof d === 'number') {
+          // OADate 변환
+          const jsDate = new Date(Math.round((d - 25569) * 86400 * 1000));
+          d = jsDate.toISOString().slice(0, 7);
+        } else {
+          d = String(d || `행 ${i}`);
+        }
+        dates.push(d);
+
+        // 각 컬럼별 수치값 추출
+        seriesNames.forEach((name, colIdx) => {
+          const val = parseFloat(row[colIdx + 1]);
+          seriesData[name].push(isNaN(val) ? 0 : val);
+        });
+      }
+
+      if (dates.length === 0) {
+        alert('데이터 행을 파싱할 수 없습니다.');
+        return;
+      }
+
+      // 화면 전환
+      document.getElementById('upload-section').style.display = 'none';
+      document.getElementById('dashboard-section').style.display = 'block';
+      document.getElementById('meta-filename').innerText = `📄 ${fileName}`;
+      document.getElementById('meta-info').innerText = `분석 기간: ${dates[0]} ~ ${dates[dates.length - 1]} (총 ${dates.length}건 관측치, ${seriesNames.length}개 분석 대상)`;
+
+      // 3. 통계 기법 연산 수행
+      destroyCharts();
+      renderKPIs(seriesNames, seriesData);
+      renderTechnique1_Descriptive(seriesNames, seriesData);
+      renderTechnique2_Correlation(seriesNames, seriesData);
+      renderTechnique3_Regression(dates, seriesNames, seriesData);
+    }
+
+    // 통계 계산 유틸
+    function getBasicStats(arr) {
+      const n = arr.length;
+      if (n === 0) return { mean: 0, sum: 0, median: 0, min: 0, max: 0, std: 0 };
+      const sum = arr.reduce((a, b) => a + b, 0);
+      const mean = sum / n;
+      const sorted = [...arr].sort((a, b) => a - b);
+      const median = n % 2 === 0 ? (sorted[n/2 - 1] + sorted[n/2]) / 2 : sorted[Math.floor(n/2)];
+      const min = sorted[0];
+      const max = sorted[n - 1];
+      const variance = n > 1 ? arr.reduce((acc, v) => acc + Math.pow(v - mean, 2), 0) / (n - 1) : 0;
+      const std = Math.sqrt(variance);
+      return { n, sum, mean, median, min, max, std };
+    }
+
+    function getCorrelation(x, y) {
+      const n = x.length;
+      if (n <= 1) return 0;
+      const mx = x.reduce((a, b) => a + b, 0) / n;
+      const my = y.reduce((a, b) => a + b, 0) / n;
+      let cov = 0, vx = 0, vy = 0;
+      for (let i = 0; i < n; i++) {
+        const dx = x[i] - mx;
+        const dy = y[i] - my;
+        cov += dx * dy;
+        vx += dx * dx;
+        vy += dy * dy;
+      }
+      return (vx * vy === 0) ? 0 : (cov / Math.sqrt(vx * vy));
+    }
+
+    function getLinearRegression(y) {
+      const n = y.length;
+      const x = Array.from({length: n}, (_, i) => i + 1);
+      const mx = (n + 1) / 2;
+      const my = y.reduce((a, b) => a + b, 0) / n;
+      let num = 0, den = 0;
+      for (let i = 0; i < n; i++) {
+        num += (x[i] - mx) * (y[i] - my);
+        den += (x[i] - mx) * (x[i] - mx);
+      }
+      const slope = den !== 0 ? num / den : 0;
+      const intercept = my - slope * mx;
+      const fitted = x.map(val => intercept + slope * val);
+      let ssTot = 0, ssRes = 0;
+      for (let i = 0; i < n; i++) {
+        ssTot += Math.pow(y[i] - my, 2);
+        ssRes += Math.pow(y[i] - fitted[i], 2);
+      }
+      const r2 = ssTot !== 0 ? Math.max(0, 1 - (ssRes / ssTot)) : 0;
+      return { slope, intercept, fitted, r2 };
+    }
+
+    // 0. KPI Row
+    function renderKPIs(seriesNames, seriesData) {
+      const container = document.getElementById('kpi-container');
+      const colors = ['#3b82f6', '#10b981', '#ec4899', '#f59e0b', '#8b5cf6'];
+      
+      container.innerHTML = seriesNames.map((name, i) => {
+        const stats = getBasicStats(seriesData[name]);
+        const color = colors[i % colors.length];
+        return `
+          <div class="kpi-box" style="border-top: 4px solid ${color};">
+            <div class="label">${name}</div>
+            <div class="value">${stats.sum.toLocaleString(undefined, {minimumFractionDigits: 1, maximumFractionDigits: 1})}</div>
+            <div class="sub">평균: ${stats.mean.toFixed(2)} | 표준편차: ±${stats.std.toFixed(2)}</div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    // 기법 1: 기술통계량
+    function renderTechnique1_Descriptive(seriesNames, seriesData) {
+      const statsMap = {};
+      seriesNames.forEach(name => {
+        statsMap[name] = getBasicStats(seriesData[name]);
+      });
+
+      // 테이블 렌더링
+      const container = document.getElementById('desc-table-container');
+      let tableHtml = `
+        <table class="stat-table">
+          <thead>
+            <tr>
+              <th>지표</th>
+              ${seriesNames.map(name => `<th>${name}</th>`).join('')}
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><strong>산술평균</strong></td>
+              ${seriesNames.map(name => `<td>${statsMap[name].mean.toFixed(2)}</td>`).join('')}
+            </tr>
+            <tr>
+              <td><strong>중앙값</strong></td>
+              ${seriesNames.map(name => `<td>${statsMap[name].median.toFixed(2)}</td>`).join('')}
+            </tr>
+            <tr>
+              <td><strong>표준편차</strong></td>
+              ${seriesNames.map(name => `<td>±${statsMap[name].std.toFixed(2)}</td>`).join('')}
+            </tr>
+            <tr>
+              <td><strong>최소 ~ 최대</strong></td>
+              ${seriesNames.map(name => `<td>${statsMap[name].min.toFixed(1)} ~ ${statsMap[name].max.toFixed(1)}</td>`).join('')}
+            </tr>
+          </tbody>
+        </table>
+      `;
+      container.innerHTML = tableHtml;
+
+      // 차트 렌더링 (평균 vs 표준편차)
+      const colors = ['#3b82f6', '#10b981', '#ec4899', '#f59e0b', '#8b5cf6'];
+      const ctx = document.getElementById('chart-desc').getContext('2d');
+      activeCharts.desc = new Chart(ctx, {
+        type: 'bar',
+        data: {
+          labels: seriesNames,
+          datasets: [
+            {
+              label: '평균값 (Mean)',
+              data: seriesNames.map(name => statsMap[name].mean),
+              backgroundColor: seriesNames.map((_, i) => colors[i % colors.length]),
+              borderRadius: 6
+            },
+            {
+              label: '표준편차 (변동폭, Std)',
+              data: seriesNames.map(name => statsMap[name].std),
+              backgroundColor: '#94a3b8',
+              borderRadius: 6
+            }
+          ]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: { legend: { position: 'top' } }
+        }
+      });
+
+      // 해설
+      let highestMeanCorp = seriesNames[0];
+      let lowestStdCorp = seriesNames[0];
+      seriesNames.forEach(name => {
+        if (statsMap[name].mean > statsMap[highestMeanCorp].mean) highestMeanCorp = name;
+        if (statsMap[name].std < statsMap[lowestStdCorp].std) lowestStdCorp = name;
+      });
+
+      document.getElementById('desc-commentary').innerHTML = `
+        <p>• <strong>중심경향치 분석</strong>: <strong>${highestMeanCorp}</strong>이(가) 평균값 <strong>${statsMap[highestMeanCorp].mean.toFixed(2)}</strong>으로 분석 대상 중 가장 높은 실적 규모를 기록하고 있습니다.</p>
+        <p>• <strong>산포도 및 안정성</strong>: <strong>${lowestStdCorp}</strong>의 표준편차가 <strong>±${statsMap[lowestStdCorp].std.toFixed(2)}</strong>으로 데이터가 평균 주변에 가장 조밀하게 집중되어 있어 변동성이 가장 낮습니다.</p>
+      `;
+
+      document.getElementById('desc-insight').innerHTML = `
+        💡 <strong>핵심 시사점</strong>: 평균과 중앙값의 괴리가 크지 않다는 것은 특정 기간의 일회성 폭등/폭락 없이 전반적인 데이터가 안정적 분포를 유지함을 의미합니다.
+      `;
+    }
+
+    // 기법 2: 피어슨 상관관계
+    function renderTechnique2_Correlation(seriesNames, seriesData) {
+      const n = seriesNames.length;
+      const matrix = [];
+      for (let i = 0; i < n; i++) {
+        matrix[i] = [];
+        for (let j = 0; j < n; j++) {
+          matrix[i][j] = getCorrelation(seriesData[seriesNames[i]], seriesData[seriesNames[j]]);
+        }
+      }
+
+      // 테이블 렌더링
+      const container = document.getElementById('corr-matrix-container');
+      let tableHtml = `
+        <table class="stat-table" style="text-align: center;">
+          <thead>
+            <tr>
+              <th>구분</th>
+              ${seriesNames.map(name => `<th>${name}</th>`).join('')}
+            </tr>
+          </thead>
+          <tbody>
+            ${seriesNames.map((name, i) => `
+              <tr>
+                <td style="font-weight:700; text-align:left;">${name}</td>
+                ${seriesNames.map((_, j) => {
+                  const r = matrix[i][j];
+                  const color = r > 0.5 ? '#1d4ed8' : (r < -0.5 ? '#be185d' : '#475569');
+                  return `<td style="color:${color}; font-weight:600;">${r.toFixed(3)}</td>`;
+                }).join('')}
+              </tr>
+            `).join('')}
+          </tbody>
+        </table>
+      `;
+      container.innerHTML = tableHtml;
+
+      // 차트 (1번 vs 나머지 산점도 또는 첫 2개 컬럼 Scatter)
+      const ctx = document.getElementById('chart-corr').getContext('2d');
+      if (seriesNames.length >= 2) {
+        const xName = seriesNames[0];
+        const yName = seriesNames[1];
+        const scatterData = seriesData[xName].map((v, i) => ({ x: v, y: seriesData[yName][i] }));
+
+        activeCharts.corr = new Chart(ctx, {
+          type: 'scatter',
+          data: {
+            datasets: [{
+              label: `${xName} vs ${yName} (상관계수 r = ${matrix[0][1].toFixed(3)})`,
+              data: scatterData,
+              backgroundColor: '#3b82f6',
+              pointRadius: 5
+            }]
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: {
+              x: { title: { display: true, text: xName } },
+              y: { title: { display: true, text: yName } }
+            }
+          }
+        });
+      }
+
+      // 해설
+      let r01 = seriesNames.length >= 2 ? matrix[0][1] : 0;
+      let corrText = '';
+      if (r01 > 0.7) corrText = '강한 양(+)의 상관관계 (동반 성장/수축 구조)';
+      else if (r01 > 0.3) corrText = '완만한 양(+)의 상관관계';
+      else if (r01 < -0.7) corrText = '강한 음(-)의 상관관계 (대체 및 점유율 잠식 구조)';
+      else if (r01 < -0.3) corrText = '완만한 음(-)의 상관관계';
+      else corrText = '통계적으로 뚜렷한 선형적 연관성 없음';
+
+      document.getElementById('corr-commentary').innerHTML = `
+        <p>• <strong>상관계수($r$) 판정</strong>: ${seriesNames[0]}와 ${seriesNames[1] || ''} 사이의 계수는 <strong>${r01.toFixed(3)}</strong>으로 <strong>${corrText}</strong>을 보입니다.</p>
+        <p>• 계수가 1에 가까울수록 한쪽 실적이 오를 때 상대방도 함께 오르며, -1에 가까울수록 한쪽이 오를 때 다른 쪽이 감소하는 역관계입니다.</p>
+      `;
+
+      document.getElementById('corr-insight').innerHTML = `
+        💡 <strong>상관관계 시사점</strong>: 음의 상관성이 짙은 항목 간에는 시장 점유율 제로섬(Zero-sum) 경쟁이 일어나고 있는지 검토가 필요합니다.
+      `;
+    }
+
+    // 기법 3: 선형 추세 및 회귀분석
+    function renderTechnique3_Regression(dates, seriesNames, seriesData) {
+      const regMap = {};
+      seriesNames.forEach(name => {
+        regMap[name] = getLinearRegression(seriesData[name]);
+      });
+
+      // 테이블 렌더링
+      const container = document.getElementById('reg-table-container');
+      let tableHtml = `
+        <table class="stat-table">
+          <thead>
+            <tr>
+              <th>대상</th>
+              <th>기울기(주기당 변화량)</th>
+              <th>결정계수 ($R^2$)</th>
+              <th>추세 방향</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${seriesNames.map(name => {
+              const reg = regMap[name];
+              const isUp = reg.slope >= 0;
+              return `
+                <tr>
+                  <td><strong>${name}</strong></td>
+                  <td style="color:${isUp ? '#2563eb' : '#dc2626'}; font-weight:700;">
+                    ${isUp ? '+' : ''}${reg.slope.toFixed(3)}
+                  </td>
+                  <td>${(reg.r2 * 100).toFixed(1)}%</td>
+                  <td>${isUp ? '📈 우상향 성장' : '📉 우하향 수축'}</td>
+                </tr>
+              `;
+            }).join('')}
+          </tbody>
+        </table>
+      `;
+      container.innerHTML = tableHtml;
+
+      // 차트 (실제 시계열 라인 + 첫 번째 대상의 추세선)
+      const colors = ['#3b82f6', '#10b981', '#ec4899', '#f59e0b', '#8b5cf6'];
+      const datasets = seriesNames.map((name, i) => ({
+        label: name,
+        data: seriesData[name],
+        borderColor: colors[i % colors.length],
+        backgroundColor: 'transparent',
+        borderWidth: 2,
+        tension: 0.25,
+        pointRadius: 2
+      }));
+
+      // 주요 대상 1번의 선형 추세선 추가
+      if (seriesNames.length > 0) {
+        const topName = seriesNames[0];
+        datasets.push({
+          label: `${topName} 추세선 (R²=${(regMap[topName].r2 * 100).toFixed(0)}%)`,
+          data: regMap[topName].fitted,
+          borderColor: '#1e293b',
+          borderDash: [5, 5],
+          borderWidth: 2,
+          pointRadius: 0
+        });
+      }
+
+      const ctx = document.getElementById('chart-trend').getContext('2d');
+      activeCharts.trend = new Chart(ctx, {
+        type: 'line',
+        data: {
+          labels: dates,
+          datasets: datasets
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          interaction: { mode: 'index', intersect: false },
+          scales: {
+            x: { ticks: { maxTicksLimit: 12 } }
+          }
+        }
+      });
+
+      // 해설
+      document.getElementById('reg-commentary').innerHTML = `
+        <p>• <strong>시간 추세 검정</strong>: 선형회귀식($\\hat{Y} = \\beta_0 + \\beta_1 t$)을 통해 시간 경과에 따른 기저 성장률을 측정했습니다.</p>
+        <p>• 결정계수($R^2$)가 높은 항목은 일시적 변동보다 <strong>구조적인 추세</strong>를 타고 있음을 나타냅니다.</p>
+      `;
+
+      document.getElementById('reg-insight').innerHTML = `
+        💡 <strong>예측 관점</strong>: 산출된 기울기($\\beta_1$)를 확장하여 차기 회차의 기대 매출을 합리적인 기본 추정치로 활용할 수 있습니다.
+      `;
+    }
+  </script>
+</body>
+</html>
